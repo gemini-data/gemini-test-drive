@@ -8,15 +8,15 @@ dcos:
   cluster_name: "###CLUSTER_NAME###"
 
 aws:
-  region: "<aws_region>"
+  region: "us-west-2"
 
   access:
-    id: "<access_id>"
-    secret: "<access_secret>"
+    id: "###ACCESS_ID###"
+    secret: "###ACCESS_SECRET###"
 
   ssh:
-    key_name: "<key_name>"
-    private_key_filepath: "/project/<filename>.pem"
+    key_name: "###KEY_NAME###"
+    private_key_filepath: "/project/###KEY_PATH###"
 #   Below will auto generated after initial setup:
 #    username: "NAME"
 
