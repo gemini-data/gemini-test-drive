@@ -5,7 +5,7 @@
 platform: "aws"
 
 dcos:
-  cluster_name: "adc_demo_cluster"
+  cluster_name: "###CLUSTER_NAME###"
 
 aws:
   region: "<aws_region>"
