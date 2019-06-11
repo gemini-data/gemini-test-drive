@@ -1,0 +1,6 @@
+#!/bin/sh
+MASTER_IP=172.18.0.99
+PUBLIC_IP=172.18.0.123
+CONFIG_USER=gemini
+CONFIG_PASS=changeme
+ELASTIC_NAME=elastic001zerocopy

@@ -1,0 +1,46 @@
+---
+#gectl:
+#  output: "/directory/on/same/device_file_system"
+
+platform: "aws"
+
+dcos:
+  cluster_name: "adc_demo_cluster"
+
+aws:
+  region: "<aws_region>"
+
+  access:
+    id: "<access_id>"
+    secret: "<access_secret>"
+
+  ssh:
+    key_name: "<key_name>"
+    private_key_filepath: "/project/<filename>.pem"
+#   Below will auto generated after initial setup:
+#    username: "NAME"
+
+  bootstrap_node:
+    instance_type: "c4.xlarge"
+    instance_disk_size_gb: 100
+
+  master_nodes:
+    count: 1
+    instance_type: "m4.large" # instance type need to supports ebs optimization
+    instance_disk_size_gb: 80
+#   Below will auto generated after initial setup:
+#    elb_public_access: "root-tff54c-pub-mas-elb-1748358630.us-west-2.elb.amazonaws.com"
+#    master:
+#      - address: 0.0.0.0
+
+  agent_nodes:
+    private:
+      count: 5
+      instance_type: "c4.4xlarge" #instance type need to supports ebs optimization
+      instance_disk_size_gb: 100
+
+    public:
+      count: 1
+      instance_type: "c4.xlarge" #instance type need to supports ebs optimization
+      instance_disk_size_gb: 100
+...

@@ -1,0 +1,106 @@
+{
+    "version": "1.0",
+    "defaultSchema": "LOCALTEMPS",
+    "schemas": [
+        {
+            "type": "custom",
+            "name": "ELAS",
+            "factory": "org.opendatainfrastructure.zc.elastic.ElasticSchemaFactory",
+            "operand": {
+                "coordinates": "{'###ELASTICHOST###': ###ELASTICPORT###}",
+                "index": "maunaloa2"
+            }
+        },
+        {
+            "name": "LOCALTEMPS",
+            "tables": [
+                {
+                    "name": "GlobalLandTemperaturesByCity",
+                    "type": "custom",
+                    "factory": "org.opendatainfrastructure.zc.ResourceTableFactory",
+                    "operand": {
+                        "url": "https://geminidata.s3-us-west-2.amazonaws.com/test-drive/climate-change-earth-surface-temperature-data/local_temps/GlobalLandTemperaturesByCity.csv",
+                        "flavor": "translatable",
+                        "source-type": "csv"
+                    }
+                },
+                {
+                    "name": "GlobalLandTemperaturesByCountry",
+                    "type": "custom",
+                    "factory": "org.opendatainfrastructure.zc.ResourceTableFactory",
+                    "operand": {
+                        "url": "https://geminidata.s3-us-west-2.amazonaws.com/test-drive/climate-change-earth-surface-temperature-data/local_temps/GlobalLandTemperaturesByCountry.csv",
+                        "flavor": "translatable",
+                        "source-type": "csv"
+                    }
+                },
+                {
+                    "name": "GlobalLandTemperaturesByMajorCity",
+                    "type": "custom",
+                    "factory": "org.opendatainfrastructure.zc.ResourceTableFactory",
+                    "operand": {
+                        "url": "https://geminidata.s3-us-west-2.amazonaws.com/test-drive/climate-change-earth-surface-temperature-data/local_temps/GlobalLandTemperaturesByMajorCity.csv",
+                        "flavor": "translatable",
+                        "source-type": "csv"
+                    }
+                },
+                {
+                    "name": "GlobalLandTemperaturesByState",
+                    "type": "custom",
+                    "factory": "org.opendatainfrastructure.zc.ResourceTableFactory",
+                    "operand": {
+                        "url": "https://geminidata.s3-us-west-2.amazonaws.com/test-drive/climate-change-earth-surface-temperature-data/local_temps/GlobalLandTemperaturesByState.csv",
+                        "flavor": "translatable",
+                        "source-type": "csv"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "CLIMATE",
+            "tables": [
+                {
+                    "name": "GLOBALTEMPERATURES",
+                    "type": "custom",
+                    "factory": "org.opendatainfrastructure.zc.ResourceTableFactory",
+                    "operand": {
+                        "url": "https://geminidata.s3-us-west-2.amazonaws.com/test-drive/climate-change-earth-surface-temperature-data/GlobalTemperatures.csv",
+                        "flavor": "translatable",
+                        "source-type": "csv"
+                    }
+                },
+                {
+                    "name": "NORTHSEAICE",
+                    "type": "custom",
+                    "factory": "org.opendatainfrastructure.zc.ResourceTableFactory",
+                    "operand": {
+                        "url": "https://geminidata.s3-us-west-2.amazonaws.com/test-drive/northern-seaice/N_seaice_extent_daily_v3.0.csv",
+                        "flavor": "translatable",
+                        "source-type": "csv"
+                    }
+                },
+                {
+                    "name": "SOUTHSEAICE",
+                    "type": "custom",
+                    "factory": "org.opendatainfrastructure.zc.ResourceTableFactory",
+                    "operand": {
+                        "url": "https://geminidata.s3-us-west-2.amazonaws.com/test-drive/southern-seaice/S_seaice_extent_daily_v3.0.csv",
+                        "flavor": "translatable",
+                        "source-type": "csv"
+                    }
+                },
+                {
+                    "name": "C02MAUNALOA",
+                    "type": "custom",
+                    "factory": "org.opendatainfrastructure.zc.ResourceTableFactory",
+                    "operand": {
+                        "url": "https://geminidata.s3-us-west-2.amazonaws.com/test-drive/co2-maunaloa/co2_weekly_mlo.txt",
+                        "flavor": "scannable",
+                        "config-block": "log-conf.regex.MAUNALOAC02_LOG",
+                        "source-type": "log"
+                    }
+                }
+            ]
+        }
+    ]
+}
