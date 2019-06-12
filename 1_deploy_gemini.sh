@@ -36,6 +36,31 @@ function prompt_settings() {
 
     echo ""
 
+    detect_private_key
+
+    echo ""
+    echo "Private Key file found. Please review your settings below:"
+    echo ""
+    echo "cluster_name=$cluster_name"
+    echo "access_id=$access_id"
+    echo "access_secret=$access_secret"
+    echo "key_name=$key_name"
+    echo "key_path=$key_path"
+
+    cluster_name=`printf '%q' $cluster_name`
+    access_id=`printf '%q' $access_id`
+    access_secret=`printf '%q' $access_secret`
+    key_name=`printf '%q' $key_name`
+    key_path=`printf '%q' $key_path`
+
+    echo "default_cluster_name=\"$cluster_name\"" > $settings_file
+    echo "default_access_id=\"$access_id\"" >> $settings_file
+    echo "default_access_secret=\"$access_secret\"" >> $settings_file
+    echo "default_key_name=\"$key_name\"" >> $settings_file
+    echo "default_key_path=\"$key_path\"" >> $settings_file
+}
+
+function prompt_private_key() {
     while true; do
         echo "Please enter the path to your private key:"
         default_key_path=${default_key_path:-"~/.ssh/privatekey.pem"}
@@ -48,21 +73,24 @@ function prompt_settings() {
             break
         fi
     done
+}
 
-    echo ""
-    echo "Private Key file found. Please review your settings below:"
-    echo ""
-    echo "cluster_name=$cluster_name"
-    echo "access_id=$access_id"
-    echo "access_secret=$access_secret"
-    echo "key_name=$key_name"
-    echo "key_path=$key_path"
-
-    echo "default_cluster_name=$cluster_name" > $settings_file
-    echo "default_access_id=$access_id" >> $settings_file
-    echo "default_access_secret=$access_secret" >> $settings_file
-    echo "default_key_name=$key_name" >> $settings_file
-    echo "default_key_path=$key_path" >> $settings_file
+function detect_private_key() {
+    detected_key=`find ~/.ssh/ -name "*.pem" | head -1`
+    if [ -f $detected_key ]; then
+        read -r -p "Found key at $detected_key. Do you want to proceed with this? [y/N] " response
+        case "$response" in
+            [yY][eE][sS]|[yY])
+                key_path=$detected_key
+                ;;
+            *)
+                prompt_private_key
+                ;;
+        esac
+    else
+        echo "No private key detected. Please specify the path to the previously uploaded .pem file."
+        prompt_private_key
+    fi
 }
 
 function read_settings() {
@@ -90,7 +118,7 @@ done
 echo "Preparing setup.yaml now..."
 key_filename=$(basename -- "$key_path")
 
-sed "s/###CLUSTER_NAME###/$cluster_name/g ; s/###ACCESS_ID###/$access_id/g ; s/###ACCESS_SECRET###/$access_secret/g ; s/###KEY_NAME###/$key_name/g ; s/###KEY_PATH###/$key_filename/g" "setup.yaml.template" > setup.yaml
+sed "s~###CLUSTER_NAME###~$cluster_name~g ; s~###ACCESS_ID###~$access_id~g ; s~###ACCESS_SECRET###~$access_secret~g ; s~###KEY_NAME###~$key_name~g ; s~###KEY_PATH###~$key_filename~g" "setup.yaml.template" > setup.yaml
 
 #    4. Run docker container, expose web interface to host machine port 80
 #docker run -d -p 80:8000 quay.io/geminidata/ge-app-setup:master_56
