@@ -120,18 +120,12 @@ key_filename=$(basename -- "$key_path")
 
 sed "s~###CLUSTER_NAME###~$cluster_name~g ; s~###ACCESS_ID###~$access_id~g ; s~###ACCESS_SECRET###~$access_secret~g ; s~###KEY_NAME###~$key_name~g ; s~###KEY_PATH###~$key_filename~g" "setup.yaml.template" > setup.yaml
 
-#    4. Run docker container, expose web interface to host machine port 80
-#docker run -d -p 80:8000 quay.io/geminidata/ge-app-setup:master_56
+echo ""
+echo "Preparation complete. Running setup docker container and adding config."
+docker run --name gemini-setup -d -p 80:8000 quay.io/geminidata/ge-app-setup:master_56
+docker cp setup.yaml gemini-setup:/project
+docker cp $key_path gemini-setup:/project
 
-
-
-#    6. Edit setup.yaml to
-#sed
-
-#    7. Copy setup.yaml, .pem file to setup container
-# docker ps
-# docker cp setup.yaml <ps>:/project
-# docker cp <keyname>.pem <ps>:/project
-
-#    8. Run gectl cluster setup command within container
-# gectl cluster setup -c setup.yaml --exclude=hdfs --exclude=influxdb --exclude=neo4j --exclude=spark --exclude=storybuilder --developer -vvvv &> setup.log &
+echo "Done. Launching Gemini Enterprise setup now, this may take a while..."
+echo ""
+docker exec -it gemini-setup gectl cluster setup -c setup.yaml --exclude=hdfs --exclude=influxdb --exclude=neo4j --exclude=spark --exclude=storybuilder --developer -vvvv
