@@ -160,6 +160,9 @@ sed "s~###PUBLIC_IP###~$public_ip~g" "jupyter_service.json.template" > jupyter_s
 dcos package --options=jupyter_service.json install jupyterlab --yes
 dcos package repo remove "DCOS Service Catalog"
 
+echo "Installing sample data sources..."
+
+
 echo "######################################"
 echo "# "
 echo "# Public IP:   $public_ip "
