@@ -185,7 +185,7 @@ echo "Installing Gemini Zero-Copy Data Virtualization service..."
 dcos marathon app add services/zerocopy.json
 
 echo "Installing Juypterlab service..."
-cd notebook/ && zip -r ../jupyter.zip * .bash* .jupyter/ .hadooprc/ .local/ .profile && cd ..
+cd notebook/ && zip -r ../jupyter.zip * .bash* .jupyter/ .hadooprc/ .local/ .profile avatica-1.13.0.jar && cd ..
 sshpass -p changeme scp -o 'StrictHostKeyChecking no' -P 2222 jupyter.zip gemini@"$config_server_public_ip":/project/data
 
 dcos package repo add "DCOS Service Catalog" https://universe.mesosphere.com/repo
