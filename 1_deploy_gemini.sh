@@ -130,7 +130,6 @@ echo "Done. Launching Gemini Enterprise setup now, this may take up to 50 minute
 echo ""
 docker exec -it gemini-setup gectl cluster setup -c setup.yaml --exclude=hdfs --exclude=influxdb --exclude=neo4j --exclude=spark --exclude=storybuilder --developer -vvvv
 echo ""
-echo "####################################################################################"
 echo "Deployment of Gemini Enterprise Cluster was successful. Continuing to prepare environment..."
 mkdir var
 docker cp gemini-setup:/usr/local/gectl/var/tmp var/
@@ -139,6 +138,18 @@ docker cp gemini-setup:/usr/local/gectl/var/log var/
 admin_url=`find var/ -name INFO.log | xargs grep URLs | grep -oP "http://[^']+"`
 public_ip=`echo $admin_url | sed -E "s/http:\/\/([^\/]+).*/\\1/"`
 master_ip=`find var/ -name INFO.log | xargs grep "Setting universe on" | sed -E "s/.*on (.+)/\\1/"`
+
+echo "admin_url=\"$admin_url\"" >> $settings_file
+echo "public_ip=\"$public_ip\"" >> $settings_file
+echo "master_ip=\"$master_ip\"" >> $settings_file
+
+echo "######################################"
+echo "# "
+echo "# Public IP: $public_ip "
+echo "# Master IP: $master_ip "
+echo "# Admin URL: $admin_url "
+echo "# "
+echo "######################################"
 
 echo "Installing CLI:"
 [ -d /usr/local/bin ] || sudo mkdir -p /usr/local/bin &&
