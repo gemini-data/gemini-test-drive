@@ -137,7 +137,7 @@ docker cp gemini-setup:/usr/local/gectl/var/log var/
 
 admin_url=`find var/ -name INFO.log | xargs grep URLs | grep -oP "http://[^']+"`
 public_ip=`echo $admin_url | sed -E "s/http:\/\/([^\/]+).*/\\1/"`
-public_dns=`host 35.165.255.34 | sed -E "s/.*pointer (.+)\.$/\\1/"`
+public_dns=`host $public_ip | sed -E "s/.*pointer (.+)\.$/\\1/"`
 master_ip=`find var/ -name INFO.log | xargs grep "Setting universe on" | sed -E "s/.*on (.+)/\\1/"`
 jupyter_url="https://$public_dns/jupyterlab-notebook/"
 
@@ -159,6 +159,16 @@ dcos package repo add "DCOS Service Catalog" https://universe.mesosphere.com/rep
 sed "s~###PUBLIC_IP###~$public_ip~g" "jupyter_service.json.template" > jupyter_service.json
 dcos package --options=jupyter_service.json install jupyterlab --yes
 dcos package repo remove "DCOS Service Catalog"
+
+while true ; do
+    status=`dcos task  jupyterlab-notebook | sed -n '2p' | awk '{print $4}'`
+    if [ "$status" == "R" ]; then
+        break
+    else
+        echo "Waiting for services, checking state again in 2s..."
+        sleep 2
+    fi
+done
 
 echo "Installing sample data sources..."
 
