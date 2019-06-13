@@ -1,2 +1,4 @@
 settings
 setup.yaml
+jupyter_service.json
+var/

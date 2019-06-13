@@ -137,19 +137,15 @@ docker cp gemini-setup:/usr/local/gectl/var/log var/
 
 admin_url=`find var/ -name INFO.log | xargs grep URLs | grep -oP "http://[^']+"`
 public_ip=`echo $admin_url | sed -E "s/http:\/\/([^\/]+).*/\\1/"`
+public_dns=`host 35.165.255.34 | sed -E "s/.*pointer (.+)\.$/\\1/"`
 master_ip=`find var/ -name INFO.log | xargs grep "Setting universe on" | sed -E "s/.*on (.+)/\\1/"`
+jupyter_url="https://$public_dns/jupyterlab-notebook/"
 
 echo "admin_url=\"$admin_url\"" >> $settings_file
 echo "public_ip=\"$public_ip\"" >> $settings_file
 echo "master_ip=\"$master_ip\"" >> $settings_file
-
-echo "######################################"
-echo "# "
-echo "# Public IP: $public_ip "
-echo "# Master IP: $master_ip "
-echo "# Admin URL: $admin_url "
-echo "# "
-echo "######################################"
+echo "public_dns=\"$public_dns\"" >>  $settings_file
+echo "jupyter_url=\"$jupyter_url\"" >> $settings_file
 
 echo "Configuring Cluster and installing additional services..."
 [ -d /usr/local/bin ] || sudo mkdir -p /usr/local/bin &&
@@ -160,9 +156,18 @@ dcos cluster setup http://$master_ip &&
 dcos
 
 dcos package repo add "DCOS Service Catalog" https://universe.mesosphere.com/repo
-
 sed "s~###PUBLIC_IP###~$public_ip~g" "jupyter_service.json.template" > jupyter_service.json
-dcos package --options=jupyter_service.json install jupyterlab
+dcos package --options=jupyter_service.json install jupyterlab --yes
+dcos package repo remove "DCOS Service Catalog"
+
+echo "######################################"
+echo "# "
+echo "# Public IP:   $public_ip "
+echo "# Master IP:   $master_ip "
+echo "# Admin URL:   $admin_url "
+echo "# Jupyter URL: $jupyter_url "
+echo "# "
+echo "######################################"
 
 #2019-06-13 06:52:14 INFO     URLs: ['http://35.165.255.34/admin']
 #2019-06-13 06:52:15 INFO     Provision: COMPLETE
