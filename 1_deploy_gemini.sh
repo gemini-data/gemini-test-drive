@@ -122,7 +122,7 @@ sed "s~###CLUSTER_NAME###~$cluster_name~g ; s~###ACCESS_ID###~$access_id~g ; s~#
 
 echo ""
 echo "Preparation complete. Running setup docker container and adding config."
-docker run --name gemini-setup -d -p 80:8000 quay.io/geminidata/ge-app-setup:master_56
+#docker run --name gemini-setup -d -p 80:8000 quay.io/geminidata/ge-app-setup:master_56
 docker cp setup.yaml gemini-setup:/project
 docker cp $key_path gemini-setup:/project
 
@@ -142,7 +142,7 @@ master_ip=`find var/ -name INFO.log | xargs grep "Setting universe on" | sed -E 
 
 echo "Installing CLI:"
 [ -d /usr/local/bin ] || sudo mkdir -p /usr/local/bin &&
-curl https://downloads.dcos.io/binaries/cli/darwin/x86-64/dcos-1.11/dcos -o dcos &&
+curl https://downloads.dcos.io/binaries/cli/linux/x86-64/dcos-1.11/dcos -o dcos &&
 sudo mv dcos /usr/local/bin &&
 sudo chmod +x /usr/local/bin/dcos &&
 dcos cluster setup http://$master_ip &&
