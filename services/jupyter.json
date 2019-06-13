@@ -9,7 +9,7 @@
     "*"
   ],
   "container": {
-    "type": "DOCKER",
+    "type": "MESOS",
     "docker": {
       "forcePullImage": false,
       "image": "dcoslabs/dcos-jupyterlab:1.2.0-0.33.7",
@@ -164,7 +164,6 @@
     "HAPROXY_0_ENABLED": "true",
     "HAPROXY_0_PATH": "/jupyterlab-notebook",
     "HAPROXY_2_REDIRECT_TO_HTTPS": "true",
-    "MARATHON_SINGLE_INSTANCE_APP": "true",
     "HAPROXY_2_ENABLED": "true",
     "HAPROXY_0_VHOST": "jupyterlab"
   },
@@ -174,6 +173,7 @@
       "mode": "container"
     }
   ],
+  "portDefinitions": [],
   "user": "nobody",
   "upgradeStrategy": {
     "maximumOverCapacity": 0,
