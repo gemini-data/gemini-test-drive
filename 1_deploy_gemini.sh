@@ -142,6 +142,7 @@ master_ip=`find var/ -name INFO.log | xargs grep "Setting universe on" | sed -E 
 jupyter_url="https://$public_dns/jupyterlab-notebook/"
 ssh_sg_id=`find var/ -name DEBUG.log | xargs grep "aws_security_group.ssh: Creation complete after" | sed -E "s/.*ID\:\s([^\)]+)\)/\\1/"`
 config_server_ip=`dcos task ge-app-datapipeline-conf-server | sed -n "2p" | awk '{print $2}'`
+sqlline_connect='!connect jdbc:avatica:remote:url=http://'"$public_ip"':8765 admin admin'
 
 echo "admin_url=\"$admin_url\"" >> $settings_file
 echo "public_ip=\"$public_ip\"" >> $settings_file
@@ -150,6 +151,8 @@ echo "public_dns=\"$public_dns\"" >>  $settings_file
 echo "jupyter_url=\"$jupyter_url\"" >> $settings_file
 echo "ssh_sg_id=\"$ssh_sg_id\"" >> $settings_file
 echo "config_server_ip=\"$config_server_ip\"" >> $settings_file
+echo "sqlline_connect=\"$sqlline_connect\"" >> $settings_file
+
 
 echo "Configuring Cluster and installing additional services..."
 [ -d /usr/local/bin ] || sudo mkdir -p /usr/local/bin &&
@@ -192,15 +195,18 @@ zip -r -j adapter.zip zerocopy/
 sshpass -p changeme scp -o 'StrictHostKeyChecking no' -P 2222 adapter.zip gemini@"$config_server_public_ip":/project/data
 curl "http://$master_ip/service/marathon/v2/apps/zero-copy/adapter/restart" -X POST
 
+sudo yum install java-1.8.0-openjdk -y
 
 echo ""
-echo "All preparation done!"
+echo ""
+echo "SUCCESS: All preparation done! Gemini Enterprise is now ready. Please continue with tutorial."
 echo ""
 echo "######################################"
 echo "# "
-echo "# Public IP:   $public_ip "
-echo "# Master IP:   $master_ip "
-echo "# Admin URL:   $admin_url "
-echo "# Jupyter URL: $jupyter_url "
+echo "# Public IP:       $public_ip "
+echo "# Master IP:       $master_ip "
+echo "# Admin URL:       $admin_url "
+echo "# Jupyter URL:     $jupyter_url "
+echo "# sqlline Connect: $jupyter_url "
 echo "# "
 echo "######################################"
