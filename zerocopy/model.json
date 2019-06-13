@@ -14,6 +14,16 @@
                         "flavor": "translatable",
                         "source-type": "csv"
                     }
+                },
+                {
+                    "name": "co2_mm_mlo_csv",
+                    "type": "custom",
+                    "factory": "org.opendatainfrastructure.zc.ResourceTableFactory",
+                    "operand": {
+                        "url": "https://geminidata.s3-us-west-2.amazonaws.com/test-drive/co2-mm-mlo_csv.csv",
+                        "flavor": "translatable",
+                        "source-type": "csv"
+                    }
                 }
             ]
         },
