@@ -128,7 +128,7 @@ docker cp $key_path gemini-setup:/project
 
 echo "Done. Launching Gemini Enterprise setup now, this may take up to 50 minutes..."
 echo ""
-docker exec -it gemini-setup gectl cluster setup -c setup.yaml --exclude=hdfs --exclude=influxdb --exclude=neo4j --exclude=spark --exclude=storybuilder --developer -vvvv
+docker exec -it gemini-setup gectl cluster setup -c setup.yaml --exclude=zero-copy --exclude=hdfs --exclude=influxdb --exclude=neo4j --exclude=spark --exclude=storybuilder --developer -vvvv
 echo ""
 echo "Deployment of Gemini Enterprise Cluster was successful. Continuing to prepare environment..."
 mkdir var
@@ -162,21 +162,7 @@ sudo chmod +x /usr/local/bin/dcos &&
 dcos cluster setup http://$master_ip &&
 dcos
 
-dcos package repo add "DCOS Service Catalog" https://universe.mesosphere.com/repo
-sed "s~###PUBLIC_IP###~$public_ip~g" "jupyter_service.json.template" > jupyter_service.json
-dcos package --options=jupyter_service.json install jupyterlab --yes
-dcos package repo remove "DCOS Service Catalog"
-
-while true ; do
-    status=`dcos task  jupyterlab-notebook | sed -n '2p' | awk '{print $4}'`
-    if [ "$status" == "R" ]; then
-        echo "Services are up and running. Continuing..."
-        break
-    else
-        echo "Waiting for services, checking state again in 2s..."
-        sleep 2
-    fi
-done
+sudo yum install java-1.8.0-openjdk -y
 
 mkdir ~/.aws
 echo "[default]" > ~/.aws/config
@@ -195,10 +181,32 @@ zip -r -j adapter.zip zerocopy/
 sshpass -p changeme scp -o 'StrictHostKeyChecking no' -P 2222 adapter.zip gemini@"$config_server_public_ip":/project/data
 curl "http://$master_ip/service/marathon/v2/apps/zero-copy/adapter/restart" -X POST
 
-sudo yum install java-1.8.0-openjdk -y
+echo "Installing Gemini Zero-Copy Data Virtualization service..."
+dcos marathon app add services/zerocopy.json
 
-echo "Installing Jupyter notebook..."
-sed "s~###ZEROCOPY_IP###~$public_ip~g ; s~10.0.2.91~$public_ip~g" "notebook/zerocopy_tensorflow.ipynb.template" > notebook/zerocopy_tensorflow.ipynb
+echo "Installing Juypterlab service..."
+cd notebook/ && zip -r ../jupyter.zip * .bash* .jupyter/ .hadooprc/ .local/ .profile && cd ..
+sshpass -p changeme scp -o 'StrictHostKeyChecking no' -P 2222 jupyter.zip gemini@"$config_server_public_ip":/project/data
+
+dcos package repo add "DCOS Service Catalog" https://universe.mesosphere.com/repo
+#sed "s~###PUBLIC_IP###~$public_ip~g" "jupyter_service.json.template" > jupyter_service.json
+#dcos package --options=jupyter_service.json install jupyterlab --yes
+dcos marathon app add services/jupyter.json
+
+while true ; do
+    status=`dcos task  jupyterlab-notebook | sed -n '2p' | awk '{print $4}'`
+    if [ "$status" == "R" ]; then
+        echo "Services are up and running. Continuing..."
+        break
+    else
+        echo "Waiting for service, checking state again in 2s..."
+        sleep 2
+    fi
+done
+dcos package repo remove "DCOS Service Catalog"
+
+#echo "Installing Jupyter notebook..."
+#sed "s~###ZEROCOPY_IP###~$public_ip~g ; s~10.0.2.91~$public_ip~g" "notebook/zerocopy_tensorflow.ipynb.template" > notebook/zerocopy_tensorflow.ipynb
 
 echo ""
 echo ""

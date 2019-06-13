@@ -1,0 +1,185 @@
+{
+  "id": "/jupyterlab-notebook",
+  "cmd": "/usr/local/bin/start.sh ${CONDA_DIR}/bin/jupyter lab --notebook-dir=${MESOS_SANDBOX}",
+  "cpus": 2,
+  "mem": 8192,
+  "disk": 0,
+  "instances": 1,
+  "acceptedResourceRoles": [
+    "*"
+  ],
+  "container": {
+    "type": "DOCKER",
+    "docker": {
+      "forcePullImage": false,
+      "image": "dcoslabs/dcos-jupyterlab:1.2.0-0.33.7",
+      "parameters": [],
+      "privileged": false
+    },
+    "volumes": [],
+    "portMappings": [
+      {
+        "containerPort": 8080,
+        "labels": {
+          "VIP_0": "/jupyterlab-notebook:8888"
+        },
+        "name": "notebook",
+        "protocol": "tcp",
+        "servicePort": 10153
+      },
+      {
+        "containerPort": 7077,
+        "labels": {
+          "VIP_1": "/jupyterlab-notebook:7077"
+        },
+        "name": "sparkdriver",
+        "protocol": "tcp",
+        "servicePort": 10154
+      },
+      {
+        "containerPort": 4040,
+        "labels": {
+          "VIP_2": "/jupyterlab-notebook:4040"
+        },
+        "name": "sparkui",
+        "protocol": "tcp",
+        "servicePort": 10155
+      },
+      {
+        "containerPort": 6046,
+        "labels": {
+          "VIP_3": "/jupyterlab-notebook:6046"
+        },
+        "name": "tfdbg",
+        "protocol": "tcp",
+        "servicePort": 10156
+      },
+      {
+        "containerPort": 8786,
+        "labels": {
+          "VIP_4": "/jupyterlab-notebook:8786"
+        },
+        "name": "daskscheduler",
+        "protocol": "tcp",
+        "servicePort": 10157
+      },
+      {
+        "containerPort": 8787,
+        "labels": {
+          "VIP_5": "/jupyterlab-notebook:8787"
+        },
+        "name": "daskboard",
+        "protocol": "tcp",
+        "servicePort": 10158
+      },
+      {
+        "containerPort": 6379,
+        "labels": {
+          "VIP_6": "/jupyterlab-notebook:6379"
+        },
+        "name": "rayredis",
+        "protocol": "tcp",
+        "servicePort": 10159
+      },
+      {
+        "containerPort": 8076,
+        "labels": {
+          "VIP_7": "/jupyterlab-notebook:8076"
+        },
+        "name": "rayobjectmanager",
+        "protocol": "tcp",
+        "servicePort": 10160
+      },
+      {
+        "containerPort": 18080,
+        "labels": {
+          "VIP_8": "/jupyterlab-notebook:18080"
+        },
+        "name": "sparkhistory",
+        "protocol": "tcp",
+        "servicePort": 10161
+      }
+    ]
+  },
+  "env": {
+    "SPARK_DRIVER_CORES": "2",
+    "JAVA_OPTS": "\"-server -XX:+UseG1GC -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/mnt/mesos/sandbox\"",
+    "TERM": "xterm-256color",
+    "JUPYTER_CONFIG_DIR": "/mnt/mesos/sandbox/.jupyter",
+    "SPARK_CONF_MESOS_EXECUTOR_HOME": "spark.mesos.executor.home=/opt/spark",
+    "SPARK_CONF_EXECUTOR_MEMORY": "spark.executor.memory=6g",
+    "NGINX_LOG_LEVEL": "warn",
+    "SPARK_DRIVER_JAVA_OPTIONS": "\"-server -XX:+UseG1GC -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/mnt/mesos/sandbox\"",
+    "SPARK_CONF_EXECUTOR_CORES": "spark.executor.cores=1",
+    "SPARK_CONF_HADOOP_FS_S3A_AWS_CREDENTIALS_PROVIDER": "spark.hadoop.fs.s3a.aws.credentials.provider=com.amazonaws.auth.InstanceProfileCredentialsProvider",
+    "SPARK_CONF_SPARK_EXECUTORENV_JAVA_HOME": "spark.executorEnv.JAVA_HOME=/opt/jdk",
+    "SPARK_DRIVER_MEMORY": "6g",
+    "SPARK_CONF_SPARK_EXECUTORENV_HADOOP_HDFS_HOME": "spark.executorEnv.HADOOP_HDFS_HOME=/opt/hadoop",
+    "CONDA_ENVS_PATH": "/mnt/mesos/sandbox/conda/envs:/opt/conda/envs",
+    "SPARK_HISTORY_FS_LOGDIRECTORY": "hdfs://hdfs/history",
+    "JUPYTER_PASSWORD": "",
+    "HOME": "/mnt/mesos/sandbox",
+    "S3_VERIFY_SSL": "1",
+    "SPARK_CONF_SPARK_EXECUTORENV_KRB5_CONFIG": "spark.executorEnv.KRB5_CONFIG=/mnt/mesos/sandbox/krb5.conf",
+    "SPARK_CONF_SPARK_MESOS_EXECUTOR_DOCKER_FORCEPULLIMAGE": "spark.mesos.executor.docker.forcePullImage=true",
+    "SPARK_CONF_MESOS_EXECUTOR_DOCKER_IMAGE": "spark.mesos.executor.docker.image=dcoslabs/dcos-spark:1.11.4-2.2.1",
+    "S3_USE_HTTPS": "1",
+    "DCOS_DIR": "/mnt/mesos/sandbox/.dcos",
+    "USER": "nobody",
+    "SPARK_CONF_EVENTLOG_ENABLED": "spark.eventLog.enabled=false",
+    "SPARK_CONF_SPARK_JARS_PACKAGES": "spark.jars.packages=org.apache.spark:spark-streaming-kafka-0-10_2.11:2.2.1,org.apache.kafka:kafka_2.11:0.10.2.1",
+    "JUPYTER_RUNTIME_DIR": "/mnt/mesos/sandbox/.local/share/jupyter/runtime",
+    "SPARK_CONF_MESOS_DRIVER_LABELS": "spark.mesos.driver.labels=DCOS_SPACE:/jupyterlab-notebook",
+    "SPARK_CONF_EXECUTOR_JAVA_OPTIONS": "spark.executor.extraJavaOptions=\"-server -XX:+UseG1GC -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/mnt/mesos/sandbox\"",
+    "SPARK_MASTER_URL": "mesos://zk://zk-1.zk:2181,zk-2.zk:2181,zk-3.zk:2181,zk-4.zk:2181,zk-5.zk:2181/mesos",
+    "CONDA_PKGS_DIRS": "/mnt/mesos/sandbox/conda/pkgs:/opt/conda/pkgs",
+    "SPARK_CONF_SPARK_SCHEDULER_MINREGISTEREDRESOURCESRATIO": "spark.scheduler.minRegisteredResourcesRatio=1.0",
+    "SPARK_CONF_MESOS_CONTAINERIZER": "spark.mesos.containerizer=mesos",
+    "SPARK_CONF_SPARK_EXECUTORENV_HADOOP_OPTS": "spark.executorEnv.HADOOP_OPTS=\"-Djava.library.path=/opt/hadoop/lib/native -Djava.security.krb5.conf=/mnt/mesos/sandbox/krb5.conf\"",
+    "HADOOP_CONF_DIR": "/mnt/mesos/sandbox",
+    "SPARK_CONF_EVENTLOG_DIR": "spark.eventLog.dir=hdfs://hdfs/",
+    "SPARK_USER": "nobody",
+    "AWS_REGION": "us-east-1",
+    "SPARK_CONF_MESOS_TASK_LABELS": "spark.mesos.task.labels=DCOS_SPACE:/jupyterlab-notebook",
+    "ENABLE_SPARK_MONITOR": "true",
+    "S3_ENDPOINT": "s3.us-east-1.amazonaws.com",
+    "SPARK_CONF_CORES_MAX": "spark.cores.max=5"
+  },
+  "healthChecks": [
+    {
+      "gracePeriodSeconds": 30,
+      "intervalSeconds": 20,
+      "maxConsecutiveFailures": 3,
+      "path": "/healthz",
+      "portIndex": 0,
+      "protocol": "MESOS_HTTP",
+      "ipProtocol": "IPv4",
+      "timeoutSeconds": 10,
+      "delaySeconds": 15
+    }
+  ],
+  "labels": {
+    "HAPROXY_0_REDIRECT_TO_HTTPS": "true",
+    "HAPROXY_GROUP": "external",
+    "HAPROXY_0_ENABLED": "true",
+    "HAPROXY_0_PATH": "/jupyterlab-notebook",
+    "HAPROXY_2_REDIRECT_TO_HTTPS": "true",
+    "MARATHON_SINGLE_INSTANCE_APP": "true",
+    "HAPROXY_2_ENABLED": "true",
+    "HAPROXY_0_VHOST": "jupyterlab"
+  },
+  "networks": [
+    {
+      "name": "dcos",
+      "mode": "container"
+    }
+  ],
+  "user": "nobody",
+  "upgradeStrategy": {
+    "maximumOverCapacity": 0,
+    "minimumHealthCapacity": 0
+  },
+  "uris": [
+    "http://ge-app-datapipeline-conf-server.marathon.l4lb.thisdcos.directory:2121/coordinator-bin/jupyter.zip"
+  ]
+}

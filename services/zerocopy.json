@@ -1,0 +1,64 @@
+{
+  "env": {
+    "SERIALIZATION": "JSON",
+    "PORT": "8765"
+  },
+  "labels": {
+    "HAPROXY_0_PORT": "8765",
+    "HAPROXY_0_GROUP": "external"
+  },
+  "id": "/zero-copy/adapter",
+  "backoffFactor": 1.15,
+  "backoffSeconds": 1,
+  "container": {
+    "type": "DOCKER",
+    "volumes": [],
+    "docker": {
+      "image": "quay.io/geminidata/zc-adapter:master_12",
+      "forcePullImage": false,
+      "privileged": false,
+      "parameters": []
+    }
+  },
+  "cpus": 1,
+  "disk": 0,
+  "fetch": [
+    {
+      "uri": "http://ge-app-datapipeline-conf-server.marathon.l4lb.thisdcos.directory:2121/coordinator-bin/adapter.zip",
+      "extract": true,
+      "executable": false,
+      "cache": false
+    }
+  ],
+  "instances": 1,
+  "maxLaunchDelaySeconds": 3600,
+  "mem": 1024,
+  "gpus": 0,
+  "networks": [
+    {
+      "mode": "host"
+    }
+  ],
+  "portDefinitions": [
+    {
+      "labels": {
+        "VIP_0": "/zero-copy/adapter:8765"
+      },
+      "name": "adapter",
+      "protocol": "tcp",
+      "port": 8765
+    }
+  ],
+  "requirePorts": true,
+  "upgradeStrategy": {
+    "maximumOverCapacity": 1,
+    "minimumHealthCapacity": 1
+  },
+  "killSelection": "YOUNGEST_FIRST",
+  "unreachableStrategy": {
+    "inactiveAfterSeconds": 0,
+    "expungeAfterSeconds": 0
+  },
+  "healthChecks": [],
+  "constraints": []
+}
