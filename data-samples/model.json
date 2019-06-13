@@ -12,6 +12,21 @@
             }
         },
         {
+            "name": "CARBONPPM",
+            "tables": [
+                {
+                    "name": "carbonppm_maunaloa",
+                    "type": "custom",
+                    "factory": "org.opendatainfrastructure.zc.ResourceTableFactory",
+                    "operand": {
+                        "url": "https://geminidata.s3-us-west-2.amazonaws.com/test-drive/carbonppm_maunaloa.csv",
+                        "flavor": "translatable",
+                        "source-type": "csv"
+                    }
+                }
+            ]
+        },
+        {
             "name": "LOCALTEMPS",
             "tables": [
                 {
