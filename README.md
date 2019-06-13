@@ -1,6 +1,4 @@
-# adc-zc-tf-demo
-For building a light weight ADC cluster
-in Amazon Web Services, with auto-configured
-data sources in Elasticsearch and CSV,
-ZeroCopy configuration, and Tensorflow.
-# gemini-test-drive
+# Gemini Enterprise Test Drive
+This repository contains scripts and configuration templates to setup Gemini Enterprise Data Science Test Drive.
+
+Find more information and subscription form at http://www.geminidata.com/test-drive
