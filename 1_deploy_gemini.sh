@@ -163,6 +163,7 @@ dcos package repo remove "DCOS Service Catalog"
 while true ; do
     status=`dcos task  jupyterlab-notebook | sed -n '2p' | awk '{print $4}'`
     if [ "$status" == "R" ]; then
+        echo "Services are up and running. Continuing..."
         break
     else
         echo "Waiting for services, checking state again in 2s..."
@@ -181,9 +182,3 @@ echo "# Admin URL:   $admin_url "
 echo "# Jupyter URL: $jupyter_url "
 echo "# "
 echo "######################################"
-
-#2019-06-13 06:52:14 INFO     URLs: ['http://35.165.255.34/admin']
-#2019-06-13 06:52:15 INFO     Provision: COMPLETE
-#2019-06-13 06:52:15 INFO     Duration: 00:49:09
-#2019-06-13 06:52:15 INFO     Log Directory: /usr/local/gectl/var/log/20190613060256
-#2019-06-13 06:52:15 INFO     State File: /usr/local/gectl/var/tmp/20190613060256/state
