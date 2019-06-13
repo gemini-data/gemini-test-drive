@@ -1,6 +1,4 @@
 ---
-#gectl:
-#  output: "/directory/on/same/device_file_system"
 
 platform: "aws"
 
@@ -17,8 +15,6 @@ aws:
   ssh:
     key_name: "###KEY_NAME###"
     private_key_filepath: "/project/###KEY_PATH###"
-#   Below will auto generated after initial setup:
-#    username: "NAME"
 
   bootstrap_node:
     instance_type: "c4.xlarge"
@@ -28,10 +24,6 @@ aws:
     count: 1
     instance_type: "m4.large" # instance type need to supports ebs optimization
     instance_disk_size_gb: 80
-#   Below will auto generated after initial setup:
-#    elb_public_access: "root-tff54c-pub-mas-elb-1748358630.us-west-2.elb.amazonaws.com"
-#    master:
-#      - address: 0.0.0.0
 
   agent_nodes:
     private:

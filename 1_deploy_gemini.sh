@@ -126,6 +126,30 @@ docker run --name gemini-setup -d -p 80:8000 quay.io/geminidata/ge-app-setup:mas
 docker cp setup.yaml gemini-setup:/project
 docker cp $key_path gemini-setup:/project
 
-echo "Done. Launching Gemini Enterprise setup now, this may take a while..."
+echo "Done. Launching Gemini Enterprise setup now, this may take up to 50 minutes..."
 echo ""
-docker exec -it gemini-setup gectl cluster setup -c setup.yaml --exclude=hdfs --exclude=influxdb --exclude=neo4j --exclude=spark --exclude=storybuilder --developer -vvvv
+#docker exec -it gemini-setup gectl cluster setup -c setup.yaml --exclude=hdfs --exclude=influxdb --exclude=neo4j --exclude=spark --exclude=storybuilder --developer -vvvv
+echo ""
+echo "####################################################################################"
+echo "Deployment of Gemini Enterprise Cluster was successful. Continuing to prepare environment..."
+mkdir var
+docker cp gemini-setup:/usr/local/gectl/var/tmp var/
+docker cp gemini-setup:/usr/local/gectl/var/log var/
+
+admin_url=`find var/ -name INFO.log | xargs grep URLs | grep -oP "http://[^']+"`
+public_ip=`echo $admin_url | sed -E "s/http:\/\/([^\/]+).*/\\1/"`
+master_ip=`find var/ -name INFO.log | xargs grep "Setting universe on" | sed -E "s/.*on (.+)/\\1/"`
+
+echo "Installing CLI:"
+[ -d /usr/local/bin ] || sudo mkdir -p /usr/local/bin &&
+curl https://downloads.dcos.io/binaries/cli/darwin/x86-64/dcos-1.11/dcos -o dcos &&
+sudo mv dcos /usr/local/bin &&
+sudo chmod +x /usr/local/bin/dcos &&
+dcos cluster setup http://$master_ip &&
+dcos
+
+#2019-06-13 06:52:14 INFO     URLs: ['http://35.165.255.34/admin']
+#2019-06-13 06:52:15 INFO     Provision: COMPLETE
+#2019-06-13 06:52:15 INFO     Duration: 00:49:09
+#2019-06-13 06:52:15 INFO     Log Directory: /usr/local/gectl/var/log/20190613060256
+#2019-06-13 06:52:15 INFO     State File: /usr/local/gectl/var/tmp/20190613060256/state
