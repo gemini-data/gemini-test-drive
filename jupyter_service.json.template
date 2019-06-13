@@ -1,0 +1,7 @@
+"cni_support": {
+    "enabled": true
+},
+"external_access": {
+    "enabled": true,
+    "external_public_agent_hostname": "###PUBLIC_IP###"
+}

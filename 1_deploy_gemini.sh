@@ -151,7 +151,7 @@ echo "# Admin URL: $admin_url "
 echo "# "
 echo "######################################"
 
-echo "Installing CLI:"
+echo "Configuring Cluster and installing additional services..."
 [ -d /usr/local/bin ] || sudo mkdir -p /usr/local/bin &&
 curl https://downloads.dcos.io/binaries/cli/linux/x86-64/dcos-1.11/dcos -o dcos &&
 sudo mv dcos /usr/local/bin &&
@@ -160,6 +160,9 @@ dcos cluster setup http://$master_ip &&
 dcos
 
 dcos package repo add "DCOS Service Catalog" https://universe.mesosphere.com/repo
+
+sed "s~###PUBLIC_IP###~$public_ip~g" "jupyter_service.json.template" > jupyter_service.json
+dcos package --options=jupyter_service.json install jupyterlab
 
 #2019-06-13 06:52:14 INFO     URLs: ['http://35.165.255.34/admin']
 #2019-06-13 06:52:15 INFO     Provision: COMPLETE
