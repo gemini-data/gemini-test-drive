@@ -3,15 +3,6 @@
     "defaultSchema": "LOCALTEMPS",
     "schemas": [
         {
-            "type": "custom",
-            "name": "ELAS",
-            "factory": "org.opendatainfrastructure.zc.elastic.ElasticSchemaFactory",
-            "operand": {
-                "coordinates": "{'simon': simonasdf}",
-                "index": "maunaloa2"
-            }
-        },
-        {
             "name": "CARBONPPM",
             "tables": [
                 {
