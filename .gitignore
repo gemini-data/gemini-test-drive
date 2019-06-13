@@ -2,3 +2,4 @@ settings
 setup.yaml
 jupyter_service.json
 var/
+notebook/zerocopy_tensorflow.ipynb

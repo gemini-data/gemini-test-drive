@@ -197,6 +197,9 @@ curl "http://$master_ip/service/marathon/v2/apps/zero-copy/adapter/restart" -X P
 
 sudo yum install java-1.8.0-openjdk -y
 
+echo "Installing Jupyter notebook..."
+sed "s~###ZEROCOPY_IP###~$public_ip~g ; s~10.0.2.91~$public_ip~g" "notebook/zerocopy_tensorflow.ipynb.template" > notebook/zerocopy_tensorflow.ipynb
+
 echo ""
 echo ""
 echo "SUCCESS: All preparation done! Gemini Enterprise is now ready. Please continue with tutorial."

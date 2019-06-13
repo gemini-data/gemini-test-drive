@@ -1,0 +1,379 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "TITLE/HEADER\n",
+    "This jupyter note book will walk you through some exploration of Gemini's ZeroCopy data availability, and how to leverage this function to enable machine learning in Tensorflow"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "PREREQUISITES"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Install jaydebeapi Python package for connecting to zerocopy"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 40,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Requirement already satisfied: jaydebeapi in ./.local/lib/python3.6/site-packages (1.1.1)\n",
+      "Requirement already satisfied: JPype1 in ./.local/lib/python3.6/site-packages (from jaydebeapi) (0.6.3)\n"
+     ]
+    }
+   ],
+   "source": [
+    "!pip install --user jaydebeapi"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Install Avatica driver"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 41,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "('/mnt/mesos/sandbox/avatica.jar', <http.client.HTTPMessage at 0x7f6fe86940f0>)"
+      ]
+     },
+     "execution_count": 41,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "import urllib.request\n",
+    "url = 'http://central.maven.org/maven2/org/apache/calcite/avatica/avatica/1.13.0/avatica-1.13.0.jar'\n",
+    "urllib.request.urlretrieve(url,'/mnt/mesos/sandbox/avatica.jar')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Import other pre-requisite packages"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 42,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from __future__ import absolute_import, division, print_function\n",
+    "import pathlib\n",
+    "import math\n",
+    "import matplotlib.pyplot as plt\n",
+    "import pandas as pd\n",
+    "import seaborn as sns\n",
+    "import numpy as np\n",
+    "import tensorflow as tf\n",
+    "from tensorflow import keras\n",
+    "from tensorflow.keras import layers\n",
+    "import datetime as dt\n",
+    "from keras import initializers\n",
+    "from keras.layers import Input, Dense\n",
+    "from keras.models import Model,Sequential\n",
+    "from keras import optimizers\n",
+    "from keras.layers import LSTM\n",
+    "from sklearn.preprocessing import MinMaxScaler\n",
+    "from sklearn.metrics import mean_squared_error\n",
+    "from sklearn.cluster import KMeans\n",
+    "from keras.models import Sequential\n",
+    "from keras.layers import Dense\n",
+    "from sklearn.metrics import r2_score\n",
+    "import jaydebeapi"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Create ZeroCopy connection"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 43,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "conn = jaydebeapi.connect(\"org.apache.calcite.avatica.remote.Driver\",\n",
+    "\"jdbc:avatica:remote:url=http://###ZEROCOPY_IP###:8765;serialization=JSON\",\n",
+    "[\"admin\",\"admin\"],\n",
+    "\"/mnt/mesos/sandbox/avatica.jar\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Send a test query to verify returned output. CLIMATE.NORTHSEAICE is a table defined in our model.json file as part of our ZeroCopy configuration."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 44,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "[('YYYY',\n",
+       "  'MM',\n",
+       "  'DD',\n",
+       "  '10^6 sq km',\n",
+       "  '10^6 sq km',\n",
+       "  'Source data product web sites: http://nsidc.org/data/nsidc-0081.html and http://nsidc.org/data/nsidc-0051.html'),\n",
+       " ('1978',\n",
+       "  '10',\n",
+       "  '26',\n",
+       "  '10.231',\n",
+       "  '0.000',\n",
+       "  \"['ftp://sidads.colorado.edu/pub/DATASETS/nsidc0051_gsfc_nasateam_seaice/final-gsfc/north/daily/1978/nt_19781026_n07_v1.1_n.bin']\"),\n",
+       " ('1978',\n",
+       "  '10',\n",
+       "  '28',\n",
+       "  '10.420',\n",
+       "  '0.000',\n",
+       "  \"['ftp://sidads.colorado.edu/pub/DATASETS/nsidc0051_gsfc_nasateam_seaice/final-gsfc/north/daily/1978/nt_19781028_n07_v1.1_n.bin']\")]"
+      ]
+     },
+     "execution_count": 44,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "curs = conn.cursor()\n",
+    "curs.execute(\"select * from CLIMATE.NORTHSEAICE limit 3\")\n",
+    "curs.fetchall()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Now let's define a more complex query that joins across the multiple data end points we've set up in Zero copy."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 45,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "climatedata_sql_str = '''select NS.\"Year\", NS.\"Month\", NS.\"Day\", NS.\"Extent\" as \"ExtentNorth\", SS.\"Extent\" as \"ExtentSouth\", GT.\"LandAverageTemperature\", GT.\"LandMaxTemperature\"\n",
+    "  FROM CLIMATE.NORTHSEAICE NS\n",
+    "  JOIN CLIMATE.SOUTHSEAICE SS ON NS.\"Year\"=SS.\"Year\" \n",
+    "      AND NS.\"Month\"=SS.\"Month\"\n",
+    "      AND NS.\"Day\"=SS.\"Day\"\n",
+    "  LEFT JOIN (SELECT SUBSTRING(GT.\"dt\", 1, 4) AS \"Year\", SUBSTRING(GT.\"dt\", 6, 2) AS \"Month\", SUBSTRING(GT.\"dt\", 9, 2) AS \"Day\", \n",
+    "  \"LandAverageTemperature\", \"LandMaxTemperature\" FROM CLIMATE.GLOBALTEMPERATURES GT) GT ON NS.\"Year\"=GT.\"Year\"\n",
+    "      AND NS.\"Month\"=GT.\"Month\"\n",
+    "      AND NS.\"Day\"=GT.\"Day\"'''"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "We will now send the query to ZeroCopy and read the output straight into a Pandas Dataframe:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 46,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "   Year Month Day      Extent      Extent LandAverageTemperature  \\\n",
+      "0  YYYY    MM  DD  10^6 sq km  10^6 sq km                   None   \n",
+      "1  1978    10  26      10.231      17.624                   None   \n",
+      "2  1978    10  28      10.420      17.803                   None   \n",
+      "3  1978    10  30      10.557      17.670                   None   \n",
+      "4  1978    11  01      10.670      17.527     6.3500000000000005   \n",
+      "5  1978    11  03      10.777      17.486                   None   \n",
+      "6  1978    11  05      10.968      17.343                   None   \n",
+      "7  1978    11  07      11.080      17.157                   None   \n",
+      "8  1978    11  09      11.189      17.028                   None   \n",
+      "9  1978    11  11      11.314      16.815                   None   \n",
+      "\n",
+      "  LandMaxTemperature  \n",
+      "0               None  \n",
+      "1               None  \n",
+      "2               None  \n",
+      "3               None  \n",
+      "4             11.685  \n",
+      "5               None  \n",
+      "6               None  \n",
+      "7               None  \n",
+      "8               None  \n",
+      "9               None  \n"
+     ]
+    }
+   ],
+   "source": [
+    "climate_sql_query = pd.read_sql_query(climatedata_sql_str, conn)\n",
+    "climate_df = pd.DataFrame(climate_sql_query)\n",
+    "print(climate_df.head(10))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "curs = conn.cursor()\n",
+    "curs.execute(\"select * from CLIMATE.C02MAUNALOA limit 3;\")\n",
+    "curs.fetchall()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "PLACEHOLDER CELL - WE CURRENTLY DON'T HAVE CARBON DATA LOADED TO ZERO COPY - POTENTIAL WORK AROUNDS ARE TO UPLOAD NEW CARBON CSV FILE TO CSV AND UPDATED MODEL.JSON - OR INCLUDE WORKING APPLICATION.CONF FILE TO PARSE NON-CSV (LOG) EXISTING CARBON FILE -- WE CAN THEN REWORK THE ABOVE SQL QUERY TO GENERATE A SINGLE QUERY TO LOAD AS A DATAFRAME\n",
+    "\n",
+    "SHORT TERM - I HAVE MANUALLY UPLOADED A CARBONPPM_MAUNALOA.CSV FILE AND WILL LOAD THAT TO CONTINUE ILLUSTRATING ANALYSIS"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 47,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "carbon = pd.read_csv(\"carbonppm_maunaloa.csv\",sep=\",\", quotechar=\"'\", skiprows=(0,2), header=0, skipfooter=1, parse_dates=[[0,1,2]], engine='python')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Let's modify our climate_df dataframe to have a date field that matches the one in carbon, and then we can join our dataframes and proceed with analysis. We also need to drop the first row in our climate_df dataframe, which seems to be a header from the original CSV."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 61,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "    Year Month Day  Extent  Extent LandAverageTemperature LandMaxTemperature\n",
+      "1   1978    10  26  10.231  17.624                   None               None\n",
+      "2   1978    10  28  10.420  17.803                   None               None\n",
+      "3   1978    10  30  10.557  17.670                   None               None\n",
+      "4   1978    11  01  10.670  17.527     6.3500000000000005             11.685\n",
+      "5   1978    11  03  10.777  17.486                   None               None\n",
+      "6   1978    11  05  10.968  17.343                   None               None\n",
+      "7   1978    11  07  11.080  17.157                   None               None\n",
+      "8   1978    11  09  11.189  17.028                   None               None\n",
+      "9   1978    11  11  11.314  16.815                   None               None\n",
+      "10  1978    11  13  11.460  16.371                   None               None\n"
+     ]
+    }
+   ],
+   "source": [
+    "climate_df = climate_df.drop([0],axis=0)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "climate_df['Year_Month_Day'] = clima"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 64,
+   "metadata": {},
+   "outputs": [
+    {
+     "ename": "org.apache.calcite.avatica.AvaticaSqlExceptionPyRaisable",
+     "evalue": "org.apache.calcite.avatica.AvaticaSqlException: Error -1 (00000) : while preparing SQL: select NS.\"Year\", NS.\"Month\", NS.\"Day\", NS.\"Extent\" as \"ExtentNorth\", SS.\"Extent\" as \"ExtentSouth\", GT.\"LandAverageTemperature\", GT.\"LandMaxTemperature\"\n  FROM CLIMATE.NORTHSEAICE NS\n  JOIN CLIMATE.SOUTHSEAICE SS ON NS.\"Year\"=SS.\"Year\" \n      AND NS.\"Month\"=SS.\"Month\"\n      AND NS.\"Day\"=SS.\"Day\"\n  LEFT JOIN (SELECT SUBSTRING(GT.\"dt\", 1, 4) AS \"Year\", SUBSTRING(GT.\"dt\", 6, 2) AS \"Month\", SUBSTRING(GT.\"dt\", 9, 2) AS \"Day\", \n  \"LandAverageTemperature\", \"LandMaxTemperature\" FROM CLIMATE.GLOBALTEMPERATURES GT) GT ON NS.\"Year\"=GT.\"Year\"\n      AND NS.\"Month\"=GT.\"Month\"\n      AND NS.\"Day\"=GT.\"Day\"\n      WHERE SS.\"Year\"<>\"YYYY\" AND NS.\"Year\"<>\"YYYY\"",
+     "output_type": "error",
+     "traceback": [
+      "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
+      "\u001b[0;31morg.apache.calcite.avatica.AvaticaSqlExceptionPyRaisable\u001b[0mTraceback (most recent call last)",
+      "\u001b[0;32m<ipython-input-64-f2b21f6ce1f5>\u001b[0m in \u001b[0;36m<module>\u001b[0;34m()\u001b[0m\n\u001b[1;32m      9\u001b[0m       \u001b[0mAND\u001b[0m \u001b[0mNS\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0;34m\"Month\"\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mGT\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0;34m\"Month\"\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m     10\u001b[0m       \u001b[0mAND\u001b[0m \u001b[0mNS\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0;34m\"Day\"\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mGT\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0;34m\"Day\"\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m---> 11\u001b[0;31m       WHERE SS.\"Year\"<>\"YYYY\" AND NS.\"Year\"<>\"YYYY\"''')\n\u001b[0m\u001b[1;32m     12\u001b[0m \u001b[0mcurs\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mfetchall\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;32m~/.local/lib/python3.6/site-packages/jaydebeapi/__init__.py\u001b[0m in \u001b[0;36mexecute\u001b[0;34m(self, operation, parameters)\u001b[0m\n\u001b[1;32m    496\u001b[0m             \u001b[0mparameters\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0;34m(\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    497\u001b[0m         \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m_close_last\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 498\u001b[0;31m         \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m_prep\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m_connection\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mjconn\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mprepareStatement\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0moperation\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    499\u001b[0m         \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m_set_stmt_parms\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m_prep\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mparameters\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    500\u001b[0m         \u001b[0;32mtry\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;31morg.apache.calcite.avatica.AvaticaSqlExceptionPyRaisable\u001b[0m: org.apache.calcite.avatica.AvaticaSqlException: Error -1 (00000) : while preparing SQL: select NS.\"Year\", NS.\"Month\", NS.\"Day\", NS.\"Extent\" as \"ExtentNorth\", SS.\"Extent\" as \"ExtentSouth\", GT.\"LandAverageTemperature\", GT.\"LandMaxTemperature\"\n  FROM CLIMATE.NORTHSEAICE NS\n  JOIN CLIMATE.SOUTHSEAICE SS ON NS.\"Year\"=SS.\"Year\" \n      AND NS.\"Month\"=SS.\"Month\"\n      AND NS.\"Day\"=SS.\"Day\"\n  LEFT JOIN (SELECT SUBSTRING(GT.\"dt\", 1, 4) AS \"Year\", SUBSTRING(GT.\"dt\", 6, 2) AS \"Month\", SUBSTRING(GT.\"dt\", 9, 2) AS \"Day\", \n  \"LandAverageTemperature\", \"LandMaxTemperature\" FROM CLIMATE.GLOBALTEMPERATURES GT) GT ON NS.\"Year\"=GT.\"Year\"\n      AND NS.\"Month\"=GT.\"Month\"\n      AND NS.\"Day\"=GT.\"Day\"\n      WHERE SS.\"Year\"<>\"YYYY\" AND NS.\"Year\"<>\"YYYY\""
+     ]
+    }
+   ],
+   "source": [
+    "curs = conn.cursor()\n",
+    "curs.execute('''select NS.\"Year\", NS.\"Month\", NS.\"Day\", NS.\"Extent\" as \"ExtentNorth\", SS.\"Extent\" as \"ExtentSouth\", GT.\"LandAverageTemperature\", GT.\"LandMaxTemperature\"\n",
+    "  FROM CLIMATE.NORTHSEAICE NS\n",
+    "  JOIN CLIMATE.SOUTHSEAICE SS ON NS.\"Year\"=SS.\"Year\" \n",
+    "      AND NS.\"Month\"=SS.\"Month\"\n",
+    "      AND NS.\"Day\"=SS.\"Day\"\n",
+    "  LEFT JOIN (SELECT SUBSTRING(GT.\"dt\", 1, 4) AS \"Year\", SUBSTRING(GT.\"dt\", 6, 2) AS \"Month\", SUBSTRING(GT.\"dt\", 9, 2) AS \"Day\", \n",
+    "  \"LandAverageTemperature\", \"LandMaxTemperature\" FROM CLIMATE.GLOBALTEMPERATURES GT) GT ON NS.\"Year\"=GT.\"Year\"\n",
+    "      AND NS.\"Month\"=GT.\"Month\"\n",
+    "      AND NS.\"Day\"=GT.\"Day\"\n",
+    "      WHERE SS.\"Year\"<>\"YYYY\" AND NS.\"Year\"<>\"YYYY\"''')\n",
+    "curs.fetchall()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.6.6"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}
