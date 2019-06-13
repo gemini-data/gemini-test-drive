@@ -140,12 +140,16 @@ public_ip=`echo $admin_url | sed -E "s/http:\/\/([^\/]+).*/\\1/"`
 public_dns=`host $public_ip | sed -E "s/.*pointer (.+)\.$/\\1/"`
 master_ip=`find var/ -name INFO.log | xargs grep "Setting universe on" | sed -E "s/.*on (.+)/\\1/"`
 jupyter_url="https://$public_dns/jupyterlab-notebook/"
+ssh_sg_id=`find var/ -name DEBUG.log | xargs grep "aws_security_group.ssh: Creation complete after" | sed -E "s/.*ID\:\s([^\)]+)\)/\\1/"`
+config_server_ip=`dcos task ge-app-datapipeline-conf-server | sed -n "2p" | awk '{print $2}'`
 
 echo "admin_url=\"$admin_url\"" >> $settings_file
 echo "public_ip=\"$public_ip\"" >> $settings_file
 echo "master_ip=\"$master_ip\"" >> $settings_file
 echo "public_dns=\"$public_dns\"" >>  $settings_file
 echo "jupyter_url=\"$jupyter_url\"" >> $settings_file
+echo "ssh_sg_id=\"$ssh_sg_id\"" >> $settings_file
+echo "config_server_ip=\"$config_server_ip\"" >> $settings_file
 
 echo "Configuring Cluster and installing additional services..."
 [ -d /usr/local/bin ] || sudo mkdir -p /usr/local/bin &&
@@ -171,9 +175,27 @@ while true ; do
     fi
 done
 
+mkdir ~/.aws
+echo "[default]" > ~/.aws/config
+echo "region = us-west-2" >> ~/.aws/config
+
+echo "[default]" > ~/.aws/credentials
+echo "aws_access_key_id = $access_id" >> ~/.aws/credentials
+echo "aws_secret_access_key = $access_secret" >> ~/.aws/credentials
+aws ec2 authorize-security-group-ingress --group-id $ssh_sg_id --protocol tcp --port 2222 --cidr 0.0.0.0/0
+config_server_public_ip=`aws ec2 describe-instances --filters "Name=private-ip-address,Values=$config_server_ip" | grep PublicIpAddress | sed -E "s/.*\:\s\"([^\"]+)\",/\\1/"`
+echo "config_server_public_ip=\"$config_server_public_ip\"" >> $settings_file
+
 echo "Installing sample data sources..."
+sudo rpm -ivh https://rpmfind.net/linux/dag/redhat/el7/en/x86_64/dag/RPMS/sshpass-1.05-1.el7.rf.x86_64.rpm
+zip -r -j adapter.zip zerocopy/
+sshpass -p changeme scp -o 'StrictHostKeyChecking no' -P 2222 adapter.zip gemini@"$config_server_public_ip":/project/data
+curl "http://$master_ip/service/marathon/v2/apps/zero-copy/adapter/restart" -X POST
 
 
+echo ""
+echo "All preparation done!"
+echo ""
 echo "######################################"
 echo "# "
 echo "# Public IP:   $public_ip "
