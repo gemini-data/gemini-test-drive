@@ -135,6 +135,13 @@ mkdir var
 docker cp gemini-setup:/usr/local/gectl/var/tmp var/
 docker cp gemini-setup:/usr/local/gectl/var/log var/
 
+[ -d /usr/local/bin ] || sudo mkdir -p /usr/local/bin &&
+curl https://downloads.dcos.io/binaries/cli/linux/x86-64/dcos-1.11/dcos -o dcos &&
+sudo mv dcos /usr/local/bin &&
+sudo chmod +x /usr/local/bin/dcos &&
+dcos cluster setup http://$master_ip &&
+dcos
+
 admin_url=`find var/ -name INFO.log | xargs grep URLs | grep -oP "http://[^']+"`
 public_ip=`echo $admin_url | sed -E "s/http:\/\/([^\/]+).*/\\1/"`
 public_dns=`host $public_ip | sed -E "s/.*pointer (.+)\.$/\\1/"`
@@ -155,12 +162,6 @@ echo "sqlline_connect=\"$sqlline_connect\"" >> $settings_file
 
 
 echo "Configuring Cluster and installing additional services..."
-[ -d /usr/local/bin ] || sudo mkdir -p /usr/local/bin &&
-curl https://downloads.dcos.io/binaries/cli/linux/x86-64/dcos-1.11/dcos -o dcos &&
-sudo mv dcos /usr/local/bin &&
-sudo chmod +x /usr/local/bin/dcos &&
-dcos cluster setup http://$master_ip &&
-dcos
 
 sudo yum install java-1.8.0-openjdk -y
 
