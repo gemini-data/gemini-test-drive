@@ -8,6 +8,10 @@ echo ""
 echo "This script prompts for settings and AWS credentials and prepares the setup for you."
 echo ""
 
+# -
+# - Functions
+# -
+
 function prompt_settings() {
     read_settings
 
@@ -101,6 +105,10 @@ function read_settings() {
     fi
 }
 
+# -
+# - MAIN LOGIC
+# - Prompt user input
+# -
 while true ; do
     prompt_settings
     echo
@@ -115,6 +123,9 @@ while true ; do
     esac
 done
 
+# -
+# - Prepare setup.yaml and docker container for gectl
+# -
 echo "Preparing setup.yaml now..."
 key_filename=$(basename -- "$key_path")
 
@@ -126,6 +137,9 @@ docker run --name gemini-setup -d -p 80:8000 quay.io/geminidata/ge-app-setup:mas
 docker cp setup.yaml gemini-setup:/project
 docker cp $key_path gemini-setup:/project
 
+# -
+# - Run gectl and extract data
+# -
 echo "Done. Launching Gemini Enterprise setup now, this may take up to 50 minutes..."
 echo ""
 docker exec -it gemini-setup gectl cluster setup -c setup.yaml --exclude=zero-copy --exclude=hdfs --exclude=influxdb --exclude=neo4j --exclude=spark --exclude=storybuilder --developer -vvvv
@@ -135,6 +149,9 @@ mkdir var
 docker cp gemini-setup:/usr/local/gectl/var/tmp var/
 docker cp gemini-setup:/usr/local/gectl/var/log var/
 
+# -
+# - DCOS CLI install
+# -
 [ -d /usr/local/bin ] || sudo mkdir -p /usr/local/bin &&
 curl https://downloads.dcos.io/binaries/cli/linux/x86-64/dcos-1.11/dcos -o dcos &&
 sudo mv dcos /usr/local/bin &&
@@ -142,6 +159,9 @@ sudo chmod +x /usr/local/bin/dcos &&
 dcos cluster setup http://$master_ip &&
 dcos
 
+# -
+# - Prep settings
+# -
 admin_url=`find var/ -name INFO.log | xargs grep URLs | grep -oP "http://[^']+"`
 public_ip=`echo $admin_url | sed -E "s/http:\/\/([^\/]+).*/\\1/"`
 public_dns=`host $public_ip | sed -E "s/.*pointer (.+)\.$/\\1/"`
@@ -165,6 +185,9 @@ echo "Configuring Cluster and installing additional services..."
 
 sudo yum install java-1.8.0-openjdk -y
 
+# -
+# - AWS CLI configration and security group update
+# -
 mkdir ~/.aws
 echo "[default]" > ~/.aws/config
 echo "region = us-west-2" >> ~/.aws/config
@@ -176,22 +199,28 @@ aws ec2 authorize-security-group-ingress --group-id $ssh_sg_id --protocol tcp --
 config_server_public_ip=`aws ec2 describe-instances --filters "Name=private-ip-address,Values=$config_server_ip" | grep PublicIpAddress | sed -E "s/.*\:\s\"([^\"]+)\",/\\1/"`
 echo "config_server_public_ip=\"$config_server_public_ip\"" >> $settings_file
 
+# -
+# - Zero-Copy service config and launch
+# -
 echo "Installing sample data sources..."
 sudo rpm -ivh https://rpmfind.net/linux/dag/redhat/el7/en/x86_64/dag/RPMS/sshpass-1.05-1.el7.rf.x86_64.rpm
 zip -r -j adapter.zip zerocopy/
 sshpass -p changeme scp -o 'StrictHostKeyChecking no' -P 2222 adapter.zip gemini@"$config_server_public_ip":/project/data
 curl "http://$master_ip/service/marathon/v2/apps/zero-copy/adapter/restart" -X POST
+rm -rf adapter.zip
 
 echo "Installing Gemini Zero-Copy Data Virtualization service..."
 dcos marathon app add services/zerocopy.json
 
+# -
+# - Jupyter service config and launch
+# -
 echo "Installing Juypterlab service..."
 cd notebook/ && zip -r ../jupyter.zip *.ipynb .bash* .jupyter/ .hadooprc/ .local/ .profile avatica-1.13.0.jar && cd ..
 sshpass -p changeme scp -o 'StrictHostKeyChecking no' -P 2222 jupyter.zip gemini@"$config_server_public_ip":/project/data
+rm -f jupyter.zip
 
 dcos package repo add "DCOS Service Catalog" https://universe.mesosphere.com/repo
-#sed "s~###PUBLIC_IP###~$public_ip~g" "jupyter_service.json.template" > jupyter_service.json
-#dcos package --options=jupyter_service.json install jupyterlab --yes
 dcos marathon app add services/jupyter.json
 
 while true ; do
@@ -206,9 +235,9 @@ while true ; do
 done
 dcos package repo remove "DCOS Service Catalog"
 
-#echo "Installing Jupyter notebook..."
-#sed "s~###ZEROCOPY_IP###~$public_ip~g ; s~10.0.2.91~$public_ip~g" "notebook/zerocopy_tensorflow.ipynb.template" > notebook/zerocopy_tensorflow.ipynb
-
+# -
+# - Print final output
+# -
 echo ""
 echo ""
 echo "SUCCESS: All preparation done! Gemini Enterprise is now ready. Please continue with tutorial."
