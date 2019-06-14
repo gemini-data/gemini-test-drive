@@ -118,7 +118,7 @@ if [ -d "var/" ]; then
         cluster_complete="yes"
     else
         echo "There is an incomplete Gemini Cluster installation detected. Please run ./99_teardown.sh first to clean up and rerun this script (./1_deploy_gemini.sh)"
-        #exit 99
+        exit 99
     fi
 fi
 
