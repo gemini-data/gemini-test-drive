@@ -81,7 +81,7 @@ function prompt_private_key() {
 
 function detect_private_key() {
     detected_key=`find ~/.ssh/ -name "*.pem" | head -1`
-    if [ -f $detected_key ]; then
+    if [ "$detected_key" != "" ] && [ -f $deteted_key ]; then
         read -r -p "Found key at $detected_key. Do you want to proceed with this? [y/N] " response
         case "$response" in
             [yY][eE][sS]|[yY])
