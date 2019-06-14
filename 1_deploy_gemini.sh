@@ -15,28 +15,28 @@ echo ""
 function prompt_settings() {
     read_settings
 
-    default_cluster_name=${default_cluster_name:-gemini-enterprise-test-drive}
+    default_cluster_name=${cluster_name:-gemini-enterprise-test-drive}
     echo Enter a name for your Gemini Enterprise Cluster:
-    read -p "Cluster Name [$default_cluster_name]: " cluster_name
-    cluster_name=${cluster_name:-$default_cluster_name}
+    read -p "Cluster Name [$default_cluster_name]: " input_cluster_name
+    cluster_name=${input_cluster_name:-$default_cluster_name}
 
-    default_access_id=${default_access_id:-"AAAAAAAAAAAAA"}
+    default_access_id=${access_id:-"AAAAAAAAAAAAA"}
     echo ""
     echo Please enter your AWS access id:
-    read -p "AWS Access ID [$default_access_id]: " access_id
-    access_id=${access_id:-$default_access_id}
+    read -p "AWS Access ID [$default_access_id]: " input_access_id
+    access_id=${input_access_id:-$default_access_id}
 
-    default_access_secret=${default_access_secret:-"BBBBBBBBBB"}
+    default_access_secret=${access_secret:-"BBBBBBBBBB"}
     echo ""
     echo Please enter your AWS access secret:
-    read -p "AWS Access Secret [$default_access_secret]: " access_secret
-    access_secret=${access_secret:-$default_access_secret}
+    read -p "AWS Access Secret [$default_access_secret]: " input_access_secret
+    access_secret=${input_access_secret:-$default_access_secret}
 
     echo ""
-    default_key_name=${default_key_name:-"mykeypair"}
+    default_key_name=${key_name:-"mykeypair"}
     echo Please enter your AWS keyname as it appears in the AWS console:
-    read -p "AWS Key Name [$default_key_name]: " key_name
-    key_name=${key_name:-$default_key_name}
+    read -p "AWS Key Name [$default_key_name]: " input_key_name
+    key_name=${input_key_name:-$default_key_name}
 
     echo ""
 
@@ -57,11 +57,11 @@ function prompt_settings() {
     key_name=`printf '%q' $key_name`
     key_path=`printf '%q' $key_path`
 
-    echo "default_cluster_name=\"$cluster_name\"" > $settings_file
-    echo "default_access_id=\"$access_id\"" >> $settings_file
-    echo "default_access_secret=\"$access_secret\"" >> $settings_file
-    echo "default_key_name=\"$key_name\"" >> $settings_file
-    echo "default_key_path=\"$key_path\"" >> $settings_file
+    echo "cluster_name=\"$cluster_name\"" > $settings_file
+    echo "access_id=\"$access_id\"" >> $settings_file
+    echo "access_secret=\"$access_secret\"" >> $settings_file
+    echo "key_name=\"$key_name\"" >> $settings_file
+    echo "key_path=\"$key_path\"" >> $settings_file
 }
 
 function prompt_private_key() {
@@ -128,12 +128,32 @@ while true ; do
     read -r -p "Are these settings correct? [y/N] " response
     case "$response" in
         [yY][eE][sS]|[yY])
-            break
+
+            # -
+            # - AWS CLI configration and security group update
+            # -
+            [[ -d ~/.aws ]] || mkdir ~/.aws
+
+            echo "[default]" > ~/.aws/config
+            echo "region = us-west-2" >> ~/.aws/config
+
+            echo "[default]" > ~/.aws/credentials
+            echo "aws_access_key_id = $access_id" >> ~/.aws/credentials
+            echo "aws_secret_access_key = $access_secret" >> ~/.aws/credentials
+
+            aws_test=`aws sts get-caller-identity 1>/dev/null 2>/dev/null ; echo $?`
+            if [ "$aws_test" != "0" ]; then
+                echo "Supplied AWS credentials aren't valid, please try again."
+            else
+                echo "Successfully validated AWS credentials, continue..."
+                break
+            fi
             ;;
         *)
 
             ;;
     esac
+
 done
 
 # -
@@ -160,7 +180,7 @@ if [ "$cluster_complete" == "no" ]; then
     docker exec -it gemini-setup gectl cluster setup -c setup.yaml --exclude=zero-copy --exclude=hdfs --exclude=influxdb --exclude=neo4j --exclude=spark --exclude=storybuilder --developer -vvvv
     echo ""
 
-    mkdir var
+    [[ -d var ]] || mkdir var
     docker cp gemini-setup:/usr/local/gectl/var/tmp var/
     docker cp gemini-setup:/usr/local/gectl/var/log var/
     docker cp gemini-setup:/usr/local/gectl/var/run var/
@@ -212,15 +232,8 @@ echo "Configuring Cluster and installing additional services..."
 sudo yum install java-1.8.0-openjdk -y
 
 # -
-# - AWS CLI configration and security group update
+# - Modify security group and get config server public ip
 # -
-mkdir ~/.aws
-echo "[default]" > ~/.aws/config
-echo "region = us-west-2" >> ~/.aws/config
-
-echo "[default]" > ~/.aws/credentials
-echo "aws_access_key_id = $access_id" >> ~/.aws/credentials
-echo "aws_secret_access_key = $access_secret" >> ~/.aws/credentials
 aws ec2 authorize-security-group-ingress --group-id $ssh_sg_id --protocol tcp --port 2222 --cidr 0.0.0.0/0
 config_server_public_ip=`aws ec2 describe-instances --filters "Name=private-ip-address,Values=$config_server_ip" | grep PublicIpAddress | sed -E "s/.*\:\s\"([^\"]+)\",/\\1/"`
 echo "config_server_public_ip=\"$config_server_public_ip\"" >> $settings_file
