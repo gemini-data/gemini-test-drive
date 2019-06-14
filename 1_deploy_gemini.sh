@@ -109,6 +109,19 @@ function read_settings() {
 # - MAIN LOGIC
 # - Prompt user input
 # -
+cluster_complete="no"
+if [ -d "var/" ]; then
+    setup_complete=`find var/run/ -name setup_complete`
+    if [ "$setup_complete" != "" ] && [ -f "$setup_complete" ]; then
+        echo "You have an existing cluster running, will continue with service configuration and preparation but not touching the cluster."
+        echo "If you want to start over, run ./99_teardown.sh first. Continuing now..."
+        cluster_complete="yes"
+    else
+        echo "There is an incomplete Gemini Cluster installation detected. Please run ./99_teardown.sh first to clean up and rerun this script (./1_deploy_gemini.sh)"
+        #exit 99
+    fi
+fi
+
 while true ; do
     prompt_settings
     echo
@@ -131,23 +144,37 @@ key_filename=$(basename -- "$key_path")
 
 sed "s~###CLUSTER_NAME###~$cluster_name~g ; s~###ACCESS_ID###~$access_id~g ; s~###ACCESS_SECRET###~$access_secret~g ; s~###KEY_NAME###~$key_name~g ; s~###KEY_PATH###~$key_filename~g" "setup.yaml.template" > setup.yaml
 
-echo ""
-echo "Preparation complete. Running setup docker container and adding config."
-docker run --name gemini-setup -d -p 80:8000 quay.io/geminidata/ge-app-setup:master_56
-docker cp setup.yaml gemini-setup:/project
-docker cp $key_path gemini-setup:/project
+if [ "$cluster_complete" == "no" ]; then
+    echo ""
+    echo "Preparation complete. Running setup docker container and adding config."
+    docker run --name gemini-setup -d -p 80:8000 quay.io/geminidata/ge-app-setup:master_56
+    docker cp setup.yaml gemini-setup:/project
+    docker cp $key_path gemini-setup:/project
 
-# -
-# - Run gectl and extract data
-# -
-echo "Done. Launching Gemini Enterprise setup now, this may take up to 50 minutes..."
-echo ""
-docker exec -it gemini-setup gectl cluster setup -c setup.yaml --exclude=zero-copy --exclude=hdfs --exclude=influxdb --exclude=neo4j --exclude=spark --exclude=storybuilder --developer -vvvv
-echo ""
-echo "Deployment of Gemini Enterprise Cluster was successful. Continuing to prepare environment..."
-mkdir var
-docker cp gemini-setup:/usr/local/gectl/var/tmp var/
-docker cp gemini-setup:/usr/local/gectl/var/log var/
+
+    # -
+    # - Run gectl and extract data
+    # -
+    echo "Done. Launching Gemini Enterprise setup now, this may take up to 50 minutes..."
+    echo ""
+    docker exec -it gemini-setup gectl cluster setup -c setup.yaml --exclude=zero-copy --exclude=hdfs --exclude=influxdb --exclude=neo4j --exclude=spark --exclude=storybuilder --developer -vvvv
+    echo ""
+
+    mkdir var
+    docker cp gemini-setup:/usr/local/gectl/var/tmp var/
+    docker cp gemini-setup:/usr/local/gectl/var/log var/
+    docker cp gemini-setup:/usr/local/gectl/var/run var/
+
+    setup_complete=`find var/run/ -name setup_complete`
+    if [ "$setup_complete" != "" ] && [ -f "$setup_complete" ]; then
+        echo "Deployment of Gemini Enterprise Cluster was successful. Continuing to prepare environment..."
+    else
+        echo "Deployment of Gemini Enterprise Cluster was NOT successful. Please check the output above for errors or contact product@geminidata.com for assistance."
+        echo "You might retry the deployment process by first cleaning up (run ./99_teardown.sh) and then start the deployment again (run ./1_deploy_gemini.sh)"
+        echo ""
+        exit 99
+    fi
+fi
 
 # -
 # - DCOS CLI install
@@ -156,8 +183,7 @@ docker cp gemini-setup:/usr/local/gectl/var/log var/
 curl https://downloads.dcos.io/binaries/cli/linux/x86-64/dcos-1.11/dcos -o dcos &&
 sudo mv dcos /usr/local/bin &&
 sudo chmod +x /usr/local/bin/dcos &&
-dcos cluster setup http://$master_ip &&
-dcos
+dcos cluster setup http://$master_ip
 
 # -
 # - Prep settings
