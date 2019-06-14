@@ -27,7 +27,7 @@ aws:
 
   agent_nodes:
     private:
-      count: 5
+      count: 3
       instance_type: "c4.4xlarge" #instance type need to supports ebs optimization
       instance_disk_size_gb: 100
 
