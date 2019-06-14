@@ -197,15 +197,6 @@ if [ "$cluster_complete" == "no" ]; then
 fi
 
 # -
-# - DCOS CLI install
-# -
-[ -d /usr/local/bin ] || sudo mkdir -p /usr/local/bin &&
-curl https://downloads.dcos.io/binaries/cli/linux/x86-64/dcos-1.11/dcos -o dcos &&
-sudo mv dcos /usr/local/bin &&
-sudo chmod +x /usr/local/bin/dcos &&
-dcos cluster setup http://$master_ip
-
-# -
 # - Prep settings
 # -
 admin_url=`find var/ -name INFO.log | xargs grep URLs | grep -oP "http://[^']+"`
@@ -214,7 +205,6 @@ public_dns=`host $public_ip | sed -E "s/.*pointer (.+)\.$/\\1/"`
 master_ip=`find var/ -name INFO.log | xargs grep "Setting universe on" | sed -E "s/.*on (.+)/\\1/"`
 jupyter_url="https://$public_dns/jupyterlab-notebook/"
 ssh_sg_id=`find var/ -name DEBUG.log | xargs grep "aws_security_group.ssh: Creation complete after" | sed -E "s/.*ID\:\s([^\)]+)\)/\\1/"`
-config_server_ip=`dcos task ge-app-datapipeline-conf-server | sed -n "2p" | awk '{print $2}'`
 sqlline_connect='!connect jdbc:avatica:remote:url=http://'"$public_ip"':8765 admin admin'
 
 echo "admin_url=\"$admin_url\"" >> $settings_file
@@ -226,6 +216,16 @@ echo "ssh_sg_id=\"$ssh_sg_id\"" >> $settings_file
 echo "config_server_ip=\"$config_server_ip\"" >> $settings_file
 echo "sqlline_connect=\"$sqlline_connect\"" >> $settings_file
 
+# -
+# - DCOS CLI install
+# -
+[ -d /usr/local/bin ] || sudo mkdir -p /usr/local/bin &&
+curl https://downloads.dcos.io/binaries/cli/linux/x86-64/dcos-1.11/dcos -o dcos &&
+sudo mv dcos /usr/local/bin &&
+sudo chmod +x /usr/local/bin/dcos &&
+dcos cluster setup http://$master_ip
+
+config_server_ip=`dcos task ge-app-datapipeline-conf-server | sed -n "2p" | awk '{print $2}'`
 
 echo "Configuring Cluster and installing additional services..."
 
