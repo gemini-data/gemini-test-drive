@@ -141,12 +141,23 @@ while true ; do
             echo "aws_access_key_id = $access_id" >> ~/.aws/credentials
             echo "aws_secret_access_key = $access_secret" >> ~/.aws/credentials
 
-            aws_test=`aws sts get-caller-identity 1>/dev/null 2>/dev/null ; echo $?`
-            if [ "$aws_test" != "0" ]; then
+            echo ""
+            echo "Validating specified settings..."
+            echo ""
+            aws_credential_test=`aws sts get-caller-identity 1>/dev/null 2>/dev/null ; echo $?`
+            if [ "$aws_credential_test" != "0" ]; then
                 echo "Supplied AWS credentials aren't valid, please try again."
             else
-                echo "Successfully validated AWS credentials, continue..."
-                break
+                aws_keypair_test=`aws ec2 describe-key-pairs --key-name "$key_name" 1>/dev/null 2>/dev/null ; echo $?`
+                if [ "$aws_keypair_test" != "0" ]; then
+                    echo "Supplied AWS credentials ar valid, but did not find the specificed key pair ('$key_name')."
+                    echo "Please make sure to enter the name of the Key Pair exactly as it appears in the AWS console under EC2 -> Key Pairs"
+                    echo ""
+                else
+                    echo "Successfully validated AWS credentials and Key Pair, continuing..."
+                    echo ""
+                    break
+                fi
             fi
             ;;
         *)
